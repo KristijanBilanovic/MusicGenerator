@@ -1,62 +1,45 @@
 import music21
-import random
+from music21 import chord
 
-
-stream = music21.converter.parse('MIDI_files/TSwift_22.mid')
-
-for e in stream.parts:
-    print(e.partName)
-
-s = stream.chordify()
-
-chords = []
-
-for element in stream.recurse().getElementsByClass('Chord'):
-    if element.pitchNames not in chords:
-        chords.append(element.pitchNames)
-
-transition = []
-
-for i in range(len(chords)):
-    transition.append([0 for _ in range(len(chords))])
-
-first = True
-last = None
-
-for element in stream.recurse().getElementsByClass('Chord'):
-    index = chords.index(element.pitchNames)
-    if first:
-        first = False
-        last = index
-    else:
-        transition[last][index] += 1
-        last = index
-
-for row in transition:
-    sum_row = sum(row)
-    for i in range(len(row)):
-        row[i] /= sum_row
+def extract_chords(score):
+    """
+    Return's a list of chords and transition probability matrix
     
-chords2 = []
+    :param score: score of notes
+    """
+    chord_stream = score.chordify()
+    chord_list = []
 
-last = 0
-for i in range(100):
-    if i == 0:
-        chords2.append(random.choice(chords))
-    else:
-        c1 = random.choices(chords, weights= transition[last])[0]
-        c2 = random.choice(chords)
-        chords2.append(random.choices([c1, c2], weights=[0.89, 0.11])[0])
-        last = chords.index(chords2[i])
+    for current_chord in chord_stream.recurse().getElementsByClass(chord.Chord):
+        pitches = tuple(sorted(p.midi for p in current_chord.pitches))
+        if pitches not in chord_list:
+            chord_list.append(pitches)
+    
+    chord_T_matrix = [[0 for _ in range(len(chord_list))] for _ in range(len(chord_list))]
+    prev_chord = None
 
-newStream = music21.stream.Stream()
-ts = music21.meter.TimeSignature('4/4')
+    for i, current_chord in enumerate(chord_stream.recurse().getElementsByClass(chord.Chord)):
+        if i > 0:
+            x = chord_list.index(tuple(sorted(p.midi for p in prev_chord.pitches)))
+            y = chord_list.index(tuple(sorted(p.midi for p in current_chord.pitches)))
+            chord_T_matrix[x][y] += 1
+        prev_chord = current_chord
+    
+    for i, row in enumerate(chord_T_matrix):
+        row_sum = sum(row)
+        if row_sum > 0:
+            for j in range(len(row)):
+                chord_T_matrix[i][j] /= row_sum
 
-newStream.append(ts)
+    return chord_T_matrix, chord_list
 
-for elem in chords2:
-    c = music21.chord.Chord(elem)
-    c.quarterLength = random.choice([2, 3, 1])
-    newStream.append(c)
 
-newStream.show()
+def main():
+    dir_path = input('Enter MIDI file path: ')
+    score = music21.converter.parse(dir_path)
+    T_matrix, chords = extract_chords(score)
+    for row in T_matrix:
+        print(row)
+
+if __name__ == '__main__':
+    main()
