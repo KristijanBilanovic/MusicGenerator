@@ -54,6 +54,22 @@ def generate_chord_score(chord_sequence: np.ndarray[tuple[int]], duration_TM: np
         chord_score.append(c)
     return chord_score 
 
+def generate_note_score(note_sequence: np.ndarray[tuple[int, int]], note_to_index: dict[tuple[str, float], int], index_to_note: dict[int, tuple[str, float]]) -> Score:
+    """
+    Create a music21 Score from a sequence of notes.
+    
+    :param note_sequence: Generated sequence of notes (nameWithOctave, duration).
+    :type note_sequence: np.ndarray[tuple[int, int]]
+    :return: A music21 Score object representing the note sequence.
+    :rtype: Score
+    """
+    note_score = Score()
+    for note_tuple in note_sequence:
+        n = music21.note.Note()
+        n.nameWithOctave = note_tuple[0]
+        n.duration = Duration(quarterLength=note_tuple[1])
+        note_score.append(n)
+    return note_score
 
 def generate_duration(duration_TM, index_to_duration, duration_to_index, prev_duration) -> Duration:
     """
@@ -74,9 +90,13 @@ def main():
     chord_TM, duration_TM, chord_to_index, index_to_chord, duration_to_index, index_to_duration = extract_chords(score)
     note_TM, note_to_index, index_to_note = extract_notes(score)
 
-    current_chord_sequence = generate_sequence(chord_TM, index_to_chord, length=50)
-    chord_score = generate_chord_score(current_chord_sequence, duration_TM, index_to_duration, duration_to_index, chord_to_index)
-    chord_score.show('midi')
+    generated_chord_sequence = generate_sequence(chord_TM, index_to_chord, length=50)
+    chord_score = generate_chord_score(generated_chord_sequence, duration_TM, index_to_duration, duration_to_index, chord_to_index)
+
+    generated_note_sequence = generate_sequence(note_TM, index_to_note, length=100)
+    note_score = generate_note_score(generated_note_sequence, note_to_index, index_to_note)
+
+    note_score.show('midi')
 
 if __name__ == '__main__':
     main()
