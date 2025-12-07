@@ -1,8 +1,10 @@
 import music21
 import numpy as np
 from testing_extraction import get_score, extract_chords, extract_notes
-from music21.stream import Score
+from music21.stream import Score, Part
 from music21.duration import Duration
+from music21 import note
+import random
 
 def generate_sequence(transition_matrix: np.ndarray, index_to_state: dict[int, tuple[int]], length: int = 100):
     """
@@ -28,7 +30,7 @@ def generate_sequence(transition_matrix: np.ndarray, index_to_state: dict[int, t
 
     return np.array(chord_sequence, dtype=object)
 
-def generate_chord_score(chord_sequence: np.ndarray[tuple[int]], duration_TM: np.ndarray, index_to_duration: dict[int, float], duration_to_index: dict[int, float], chord_to_index: dict[tuple[int], int]) -> Score:
+def generate_chord_score(chord_sequence: np.ndarray[tuple[int]], duration_TM: np.ndarray, index_to_duration: dict[int, float], duration_to_index: dict[int, float], chord_to_index: dict[tuple[int], int]) -> Part:
     """
     Create a music21 Score from a sequence of chords and their durations.
     
@@ -39,9 +41,13 @@ def generate_chord_score(chord_sequence: np.ndarray[tuple[int]], duration_TM: np
     :return: A music21 Score object representing the chord sequence.
     :rtype: Score
     """
-    chord_score = Score()
+    chord_score = Part()
     prev_duration = None
     for chord in chord_sequence:
+        if random.random() < 0.8:  # 80% chance
+            r = note.Rest(0.5)
+            chord_score.append(r)
+
         c = music21.chord.Chord()
 
         duration = generate_duration(duration_TM, index_to_duration, duration_to_index, prev_duration)
@@ -54,17 +60,20 @@ def generate_chord_score(chord_sequence: np.ndarray[tuple[int]], duration_TM: np
         chord_score.append(c)
     return chord_score 
 
-def generate_note_score(note_sequence: np.ndarray[tuple[int, int]], note_to_index: dict[tuple[str, float], int], index_to_note: dict[int, tuple[str, float]]) -> Score:
+def generate_note_score(note_sequence: np.ndarray[tuple[int, int]], note_to_index: dict[tuple[str, float], int], index_to_note: dict[int, tuple[str, float]]) -> Part:
     """
     Create a music21 Score from a sequence of notes.
     
     :param note_sequence: Generated sequence of notes (nameWithOctave, duration).
     :type note_sequence: np.ndarray[tuple[int, int]]
     :return: A music21 Score object representing the note sequence.
-    :rtype: Score
+    :rtype: Part
     """
-    note_score = Score()
+    note_score = Part()
     for note_tuple in note_sequence:
+        if random.random() < 0.4:  # 30% chance
+            r = note.Rest(0.5)
+            note_score.append(r)
         n = music21.note.Note()
         n.nameWithOctave = note_tuple[0]
         n.duration = Duration(quarterLength=note_tuple[1])
@@ -96,7 +105,11 @@ def main():
     generated_note_sequence = generate_sequence(note_TM, index_to_note, length=100)
     note_score = generate_note_score(generated_note_sequence, note_to_index, index_to_note)
 
-    note_score.show('midi')
+    combined_score = Score()
+    combined_score.append(chord_score)
+    combined_score.append(note_score)
+
+    combined_score.show('midi')
 
 if __name__ == '__main__':
     main()
