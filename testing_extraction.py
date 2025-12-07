@@ -84,11 +84,19 @@ def extract_notes(score):
     index_to_note = {i : n for n, i in note_to_index.items()}
     
     return note_T_matrix, note_to_index, index_to_note
+
+def get_score(dir_path):
+    """
+    Get music21 score from MIDI file.
     
+    :param dir_path: path to MIDI file
+    """
+    score = music21.converter.parse(dir_path)
+    return score
 
 def main():
     dir_path = input('Enter MIDI file path: ')
-    score = music21.converter.parse(dir_path)
+    score = get_score(dir_path)
     TM, n = extract_chords(score)
 
     print(TM)
