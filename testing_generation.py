@@ -4,26 +4,26 @@ from testing_extraction import get_score, extract_chords, extract_notes
 from music21.stream import Score
 from music21.duration import Duration
 
-def generate_chord_sequence(chord_T_matrix: np.ndarray, index_to_chords: dict[int, tuple[int]], length: int = 100):
+def generate_sequence(transition_matrix: np.ndarray, index_to_state: dict[int, tuple[int]], length: int = 100):
     """
-    Generate a sequence of chords based on the transition matrix.
-    :param chord_T_matrix: transition matrix for chords
-    :param index_to_chords: mapping from indices to chords
+    Generate a Markov state sequence based on the transition matrix.
+    :param transition_matrix: transition matrix for chords
+    :param index_to_state: mapping from indices to chords
     :param length: length of the generated sequence
     """
 
     chord_sequence = []
 
-    N = chord_T_matrix.shape[0]
+    N = transition_matrix.shape[0]
     
     current_chord_index = np.random.choice(N)
-    chord_sequence.append(index_to_chords[current_chord_index])
+    chord_sequence.append(index_to_state[current_chord_index])
 
     for _ in range(length - 1):
-        if chord_T_matrix[current_chord_index].sum() == 0:
+        if transition_matrix[current_chord_index].sum() == 0:
             break
-        next_chord_index = np.random.choice(N, p=chord_T_matrix[current_chord_index])
-        chord_sequence.append(index_to_chords[next_chord_index])
+        next_chord_index = np.random.choice(N, p=transition_matrix[current_chord_index])
+        chord_sequence.append(index_to_state[next_chord_index])
         current_chord_index = next_chord_index
 
     return np.array(chord_sequence, dtype=object)
@@ -54,6 +54,7 @@ def generate_chord_score(chord_sequence: np.ndarray[tuple[int]], duration_TM: np
         chord_score.append(c)
     return chord_score 
 
+
 def generate_duration(duration_TM, index_to_duration, duration_to_index, prev_duration) -> Duration:
     """
     Generate a random duration for a chord.
@@ -73,7 +74,7 @@ def main():
     chord_TM, duration_TM, chord_to_index, index_to_chord, duration_to_index, index_to_duration = extract_chords(score)
     note_TM, note_to_index, index_to_note = extract_notes(score)
 
-    current_chord_sequence = generate_chord_sequence(chord_TM, index_to_chord, length=50)
+    current_chord_sequence = generate_sequence(chord_TM, index_to_chord, length=50)
     chord_score = generate_chord_score(current_chord_sequence, duration_TM, index_to_duration, duration_to_index, chord_to_index)
     chord_score.show('midi')
 
