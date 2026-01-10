@@ -95,7 +95,7 @@ def generate_duration(duration_TM, index_to_duration, duration_to_index, prev_du
 
 
 def main():
-    score = get_score('./MIDI_files/TSwift_BTD.mid')
+    score = get_score('./MIDI_files')
     chord_TM, duration_TM, chord_to_index, index_to_chord, duration_to_index, index_to_duration = extract_chords(score)
     note_TM, note_to_index, index_to_note = extract_notes(score)
 
