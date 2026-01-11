@@ -4,8 +4,9 @@ import pandas as pd
 
 class MusicDataTrainer:
     def __init__(self, data_path: str = 'MIDI_files'):
-        self.data_path = data_path
+        self._data_path = data_path
         self._transition_matrices = {}
+        self._starting_probabilities = {}
         self._scores = self._load_data()
         self.instrument_mapping = self._get_all_instruments()
         
@@ -17,7 +18,7 @@ class MusicDataTrainer:
         """
         scores = []
 
-        for root, dirs, files in os.walk(self.data_path):
+        for root, dirs, files in os.walk(self._data_path):
             for filename in files:
                 if filename.lower().endswith('.mid') or filename.lower().endswith('.midi'):
                     midi_path = os.path.join(root, filename)
@@ -51,6 +52,7 @@ class MusicDataTrainer:
         :return: None
         """
         transitions_by_instrument = {}
+        initial_notes_by_instrument = {}
 
         # Find all transitions for each instrument
         for score in self._scores:
@@ -59,6 +61,15 @@ class MusicDataTrainer:
                 instr_name = instr.instrumentName
 
                 notes = [note.pitch.midi for note in part.recurse() if isinstance(note, music21.note.Note)]
+
+                if len(notes) < 2:
+                    continue
+                
+                # Append initial notes (starting probabilities) for each instrument
+                if instr_name not in initial_notes_by_instrument:
+                    initial_notes_by_instrument[instr_name] = [notes[0]]
+                else:
+                    initial_notes_by_instrument[instr_name].append(notes[0])
 
                 # Pairs of (current_note, next_note)
                 transition_pairs = list(zip(notes[:-1], notes[1:]))
@@ -73,6 +84,7 @@ class MusicDataTrainer:
 
         for k in keys_to_remove:
             transitions_by_instrument.pop(k, None)
+            initial_notes_by_instrument.pop(k, None)
         
         # Build transition matrices for each instrument
         for instr_name, transitions in transitions_by_instrument.items():
@@ -95,6 +107,13 @@ class MusicDataTrainer:
             squared_counts = squared_counts.div(squared_counts.sum(axis=1), axis=0)
 
             self._transition_matrices[instr_name] = squared_counts
+        
+        # Build starting probabilities for each instrument
+        for instr_name, initial_notes in initial_notes_by_instrument.items():
+            initial_notes_series = pd.Series(initial_notes, name='initial').value_counts()
+            initial_counts = initial_notes_series.reindex(self._transition_matrices[instr_name].index, fill_value=0)
+
+            self._starting_probabilities[instr_name] = initial_counts / initial_counts.sum()
 
     def train_models(self) -> None:
         """
