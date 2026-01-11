@@ -1,48 +1,30 @@
 import os
 import music21
 import numpy as np
+import pandas as pd
 
 class MusicalMarkovChain:
-    def __init__(self, input_path: str = 'MIDI_files'):
-        self.input_path = input_path
-        self.note_T_matrix = None
-        self.note_to_index = None
-        self.index_to_note = None
-        self.scores = self.__parse_input__(input_path)
-        self.all_instruments = self.__get_all_instruments__()
-
-    def generate_music(self):
-        pass
-
-    def __parse_input__(self, input_path: str = 'MIDI_files') -> list[music21.stream.Score]:
-        """
-        Parse MIDI files from the given directory and partition them by instruments.
-        :param input_path: Path to the directory containing MIDI files.
-        :return: List of partitioned music21 Score objects.
-        """
-
-        path = os.fsencode(input_path)
-        scores = []
-
-        for file in os.listdir(path):
-            filename = os.fsdecode(file)
-            if filename.endswith('.mid') or filename.endswith('.midi'):
-                midi_path = os.path.join(input_path, filename)
-                score = music21.converter.parse(midi_path)
-                score = music21.instrument.partitionByInstrument(score)
-                scores.append(score)
-        return scores
+    def __init__(self, transition_matrix: pd.DataFrame, starting_probabilities: pd.Series):
+        self._transition_matrix = transition_matrix
+        self._starting_probabilities = starting_probabilities
     
-    def __get_all_instruments__(self) -> list[str]:
+    def generate_sequence(self, length: int = 50) -> list:
         """
-        Get a list of all unique instruments from the parsed scores.
-        :return: List of instrument names.
+        Generate a sequence of states based on the Markov Chain model.
+        
+        :param length: Length of the sequence to generate.
+        :type length: int
+        :return: Generated sequence of states.
+        :rtype: list
         """
-        instruments = set()
-
-        for score in self.scores:
-            for part in score.parts:
-                instr = part.getInstrument()
-                instruments.add(instr.instrumentName)
-
-        return list(instruments)
+        states = self._transition_matrix.index.tolist()
+        current_state = np.random.choice(states, p=self._starting_probabilities.values)
+        sequence = [current_state]
+        
+        for _ in range(1, length):
+            current_row = self._transition_matrix.loc[current_state]
+            next_state = np.random.choice(states, p=current_row.values)
+            sequence.append(next_state)
+            current_state = next_state
+        
+        return sequence
