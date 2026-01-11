@@ -61,19 +61,27 @@ class MusicDataTrainer:
                 instr = part.getInstrument()
                 instr_name = instr.instrumentName
 
-                notes = [note.pitch.midi for note in part.recurse() if isinstance(note, music21.note.Note)]
+                music_elements = [
+                    (note.pitch.midi,) if isinstance(note, music21.note.Note) else 
+                    tuple(sorted(n.pitch.midi for n in note.notes)) if isinstance(note, music21.chord.Chord) else 
+                    None # We will filter this out next
+                    for note in part.recurse()
+                ]
 
-                if len(notes) < 2:
+                # Filter out the None values 
+                music_elements = [e for e in music_elements if e is not None]
+
+                if len(music_elements) < 2:
                     continue
                 
                 # Append initial notes (starting probabilities) for each instrument
                 if instr_name not in initial_notes_by_instrument:
-                    initial_notes_by_instrument[instr_name] = [notes[0]]
+                    initial_notes_by_instrument[instr_name] = [music_elements[0]]
                 else:
-                    initial_notes_by_instrument[instr_name].append(notes[0])
+                    initial_notes_by_instrument[instr_name].append(music_elements[0])
 
                 # Pairs of (current_note, next_note)
-                transition_pairs = list(zip(notes[:-1], notes[1:]))
+                transition_pairs = list(zip(music_elements[:-1], music_elements[1:]))
 
                 if instr_name not in transitions_by_instrument:
                     transitions_by_instrument[instr_name] = transition_pairs
