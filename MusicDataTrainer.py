@@ -5,7 +5,7 @@ import pandas as pd
 class MusicDataTrainer:
     def __init__(self, data_path: str = 'MIDI_files'):
         self.data_path = data_path
-        self.matrices = {}
+        self._transition_matrices = {}
         self.scores = self._load_data()
         self.instrument_mapping = self._get_all_instruments()
         
@@ -94,8 +94,7 @@ class MusicDataTrainer:
             # Normalize rows to get probabilities
             squared_counts = squared_counts.div(squared_counts.sum(axis=1), axis=0)
 
-            self.matrices[instr_name] = squared_counts
-
+            self._transition_matrices[instr_name] = squared_counts
 
     def train_models(self) -> None:
         """
