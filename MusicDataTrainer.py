@@ -46,7 +46,7 @@ class MusicDataTrainer:
 
         return instrument_mapping
     
-    def _get_music_elements(self, part: music21.stream.Part) -> list[tuple[int]]:
+    def _get_music_elements(self, part: music21.stream.Part) -> list[str]:
         """
         Extract music elements (notes, chords, rests) from a music21 Part object.
         :param part: music21 Part object.
@@ -56,12 +56,12 @@ class MusicDataTrainer:
 
         for element in part.recurse():
             if isinstance(element, music21.note.Note):
-                music_elements.append((element.pitch.midi,))
+                music_elements.append(str(element.pitch.midi))
             elif isinstance(element, music21.chord.Chord):
-                chord_tuple = tuple(sorted(n.pitch.midi for n in element.notes))
+                chord_tuple = ','.join(str(p.midi) for p in sorted(element.pitches, key=lambda p: p.midi))
                 music_elements.append(chord_tuple)
             elif isinstance(element, music21.note.Rest):
-                music_elements.append((-1,))
+                music_elements.append(str(-1))
 
         return music_elements
 
@@ -151,3 +151,14 @@ class MusicDataTrainer:
             models[instr_name] = markov_chain
         
         return models
+    
+    @staticmethod
+    def str_to_midi_tuple(music_element: str) -> tuple[int, ...]:
+        """
+        Convert a string of MIDI numbers to a tuple representation.
+        :param music_element: String representation of the MIDI tuple.
+        :return: Tuple of MIDI numbers.
+        """
+        tokens = music_element.split(',')
+        midi_tuple = tuple(int(midi_str) for midi_str in tokens)
+        return midi_tuple
