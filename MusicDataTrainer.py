@@ -45,6 +45,25 @@ class MusicDataTrainer:
                     index += 1
 
         return instrument_mapping
+    
+    def _get_music_elements(self, part: music21.stream.Part) -> list[tuple[int]]:
+        """
+        Extract music elements (notes, chords, rests) from a music21 Part object.
+        :param part: music21 Part object.
+        :return: List of music elements represented as tuples of MIDI numbers.
+        """
+        music_elements = []
+
+        for element in part.recurse():
+            if isinstance(element, music21.note.Note):
+                music_elements.append((element.pitch.midi,))
+            elif isinstance(element, music21.chord.Chord):
+                chord_tuple = tuple(sorted(n.pitch.midi for n in element.notes))
+                music_elements.append(chord_tuple)
+            elif isinstance(element, music21.note.Rest):
+                music_elements.append((-1,))
+
+        return music_elements
 
     def analyze_data(self, laplace_smoothing: float = 1.0) -> None:
         """
@@ -61,15 +80,7 @@ class MusicDataTrainer:
                 instr = part.getInstrument()
                 instr_name = instr.instrumentName
 
-                music_elements = [
-                    (note.pitch.midi,) if isinstance(note, music21.note.Note) else 
-                    tuple(sorted(n.pitch.midi for n in note.notes)) if isinstance(note, music21.chord.Chord) else 
-                    None # We will filter this out next
-                    for note in part.recurse()
-                ]
-
-                # Filter out the None values 
-                music_elements = [e for e in music_elements if e is not None]
+                music_elements = self._get_music_elements(part)
 
                 if len(music_elements) < 2:
                     continue
