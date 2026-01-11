@@ -1,6 +1,7 @@
 import os
 import music21
 import pandas as pd
+from MusicalMarkovChain import MusicalMarkovChain
 
 class MusicDataTrainer:
     def __init__(self, data_path: str = 'MIDI_files'):
@@ -115,9 +116,19 @@ class MusicDataTrainer:
 
             self._starting_probabilities[instr_name] = initial_counts / initial_counts.sum()
 
-    def train_models(self) -> None:
+    def train_models(self) -> dict[str, MusicalMarkovChain]:
         """
         Train the Markov Chain models using the extracted parameters from analyze_data().
-        :return: None
+        :return: Dictionary mapping instrument names to their trained MusicalMarkovChain models.
+        :rtype: dict[str, MusicalMarkovChain]
         """
-        pass
+        models = {}
+
+        for instr_name in self._transition_matrices.keys():
+            transition_matrix = self._transition_matrices[instr_name]
+            starting_probabilities = self._starting_probabilities[instr_name]
+
+            markov_chain = MusicalMarkovChain(transition_matrix, starting_probabilities)
+            models[instr_name] = markov_chain
+        
+        return models
