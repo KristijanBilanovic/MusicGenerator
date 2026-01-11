@@ -6,7 +6,7 @@ class MusicDataTrainer:
     def __init__(self, data_path: str = 'MIDI_files'):
         self.data_path = data_path
         self._transition_matrices = {}
-        self.scores = self._load_data()
+        self._scores = self._load_data()
         self.instrument_mapping = self._get_all_instruments()
         
     def _load_data(self) -> list[music21.stream.Score]:
@@ -35,7 +35,7 @@ class MusicDataTrainer:
         instrument_mapping = dict()
         index = 0
 
-        for score in self.scores:
+        for score in self._scores:
             for part in score.parts:
                 instr = part.getInstrument()
                 if instr.instrumentName not in instrument_mapping:
@@ -53,7 +53,7 @@ class MusicDataTrainer:
         transitions_by_instrument = {}
 
         # Find all transitions for each instrument
-        for score in self.scores:
+        for score in self._scores:
             for part in score.parts:
                 instr = part.getInstrument()
                 instr_name = instr.instrumentName
